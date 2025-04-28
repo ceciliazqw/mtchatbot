@@ -4,4 +4,4 @@ Flask-SQLAlchemy==2.5.1
 PyJWT==2.6.0
 Werkzeug==2.2.2
 SQLAlchemy==1.4.47
-gunicorn
+gunicorn==20.1.0
