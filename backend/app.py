@@ -166,25 +166,29 @@ with app.app_context():
 # --- 新增：處理前端靜態文件的路由 ---
 @app.route('/')
 def index():
-    # app.root_path 指的是 backend/ 目錄
-    # os.path.join(app.root_path, '../frontend') 會正確指向 MINTAI WEB API/frontend/ 目錄
     frontend_dir = os.path.join(app.root_path, '../frontend')
-    print(f"Serving index.html from: {frontend_dir}") # 加入 print 方便除錯
-    # 檢查檔案是否存在 (可選，但有助於除錯)
-    if not os.path.exists(os.path.join(frontend_dir, 'index.html')):
-         print(f"Warning: index.html not found at {os.path.join(frontend_dir, 'index.html')}")
-         return "index.html not found", 404 # 回傳明確錯誤
+    file_path = os.path.join(frontend_dir, 'index.html')
+    print(f"[DEBUG] Root request: frontend_dir='{frontend_dir}', file_path='{file_path}'")
+    exists = os.path.exists(file_path)
+    print(f"[DEBUG] Root request: index.html exists? {exists}")
+    if not exists:
+         # 可以考慮返回 500 而不是 404，因為這表示伺服器配置問題
+         return "Internal Server Error: index.html not found at expected path.", 500
     return send_from_directory(frontend_dir, 'index.html')
 
 @app.route('/<path:filename>')
 def serve_static(filename):
-    # 同上，路徑會指向 MINTAI WEB API/frontend/ 目錄
+    # 排除 API 路徑
+    if filename.startswith('api/'):
+        return "Not Found", 404 # 或者讓其他路由處理
+
     frontend_dir = os.path.join(app.root_path, '../frontend')
-    print(f"Serving static file: {filename} from: {frontend_dir}") # 加入 print 方便除錯
-     # 檢查檔案是否存在 (可選)
-    if not os.path.exists(os.path.join(frontend_dir, filename)):
-         print(f"Warning: Static file {filename} not found at {os.path.join(frontend_dir, filename)}")
-         return f"{filename} not found", 404 # 回傳明確錯誤
+    file_path = os.path.join(frontend_dir, filename)
+    print(f"[DEBUG] Static request: Serving '{filename}'. frontend_dir='{frontend_dir}', file_path='{file_path}'")
+    exists = os.path.exists(file_path)
+    print(f"[DEBUG] Static request: '{filename}' exists? {exists}")
+    if not exists:
+        return f"{filename} not found", 404
     return send_from_directory(frontend_dir, filename)
 
 # --- 主程式進入點 ---
