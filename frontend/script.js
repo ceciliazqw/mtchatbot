@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Alert to verify login button click
         alert("Login attempt started for " + username);
         
-        fetch('http://localhost:88/api/login', {
+        fetch('https://mtchatbot-932847276366.asia-east1.run.app/api/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username: username, password: password })
