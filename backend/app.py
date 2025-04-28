@@ -154,13 +154,13 @@ def initialize_or_update_client(username, password, policy_num, cost, due_date_o
         print(f"初始化/更新客戶 {username} 時發生錯誤: {e}")
 
 # --- 在 App Context 中執行資料庫初始化 ---
-with app.app_context():
-    print("正在建立資料庫表格...")
-    db.create_all() # 確保所有定義的模型對應的表格都已建立
-    print("正在初始化/更新客戶資料...")
-    initialize_or_update_client("user1", "pass1", "1212", "NT$15000", date(2025, 5, 15))
-    initialize_or_update_client("user2", "pass2", "3434", "NT$20000", date(2025, 6, 20))
-    print("資料庫初始化完成。")
+# with app.app_context():
+#     print("正在建立資料庫表格...")
+#     db.create_all() # 確保所有定義的模型對應的表格都已建立
+#     print("正在初始化/更新客戶資料...")
+#     initialize_or_update_client("user1", "pass1", "1212", "NT$15000", date(2025, 5, 15))
+#     initialize_or_update_client("user2", "pass2", "3434", "NT$20000", date(2025, 6, 20))
+#     print("資料庫初始化完成。")
 
 # --- 新增：處理前端靜態文件的路由 ---
 @app.route('/')
