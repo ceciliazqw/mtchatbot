@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Insurance Chatbot</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <h1>Welcome to Wingwill Insurance Co.</h1>
+  <!-- Chatbot logo to trigger login modal -->
+  <div id="chatbot-icon" onclick="toggleLoginModal()">💬</div>
+
+  <!-- Login modal; initially hidden -->
+  <div id="login-modal" class="hidden">
+    <div id="login-form">
+      <h2>Login</h2>
+      <input type="text" id="username" placeholder="Username" autocomplete="username">
+      <input type="password" id="password" placeholder="Password" autocomplete="current-password">
+      <button id="login-btn">Login</button>
+    </div>
+  </div>
+
+  <!-- Chatbot container for Dialogflow Messenger; initially hidden -->
+  <div id="chatbot-container" class="hidden">
+    <link rel="stylesheet" href="https://www.gstatic.com/dialogflow-console/fast/df-messenger/prod/v1/themes/df-messenger-default.css">
+    <df-messenger
+      location="asia-northeast1"
+      project-id="ww-ai-agent-demo"
+      agent-id="9a687799-e142-4fbc-a0d0-110b63b7746f"
+      language-code="zh-tw"
+      max-query-length="-1">
+      <df-messenger-chat-bubble chat-title="WW Insurance Agent"></df-messenger-chat-bubble>
+    </df-messenger>
+    <style>
+      df-messenger {
+        z-index: 999;
+        position: fixed;
+        --df-messenger-font-color: #000;
+        --df-messenger-font-family: Google Sans;
+        --df-messenger-chat-background: #f3f6fc;
+        --df-messenger-message-user-background: #d3e3fd;
+        --df-messenger-message-bot-background: #fff;
+        bottom: 16px;
+        right: 16px;
+      }
+    </style>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
