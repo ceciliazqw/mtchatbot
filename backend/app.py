@@ -81,51 +81,88 @@ def login():
         # 登入失敗，為了安全，回傳通用的錯誤訊息
         return jsonify({'error': '帳號或密碼錯誤'}), 401
 
-@app.route('/api/policy', methods=['GET'])
-def get_policy():
-    """根據 JWT 和 'field' 查詢參數，獲取特定的保單資訊"""
-    # 1. 從 Authorization Header 取得並驗證 JWT Token
+# @app.route('/api/policy', methods=['GET'])
+# def get_policy():
+#     """根據 JWT 和 'field' 查詢參數，獲取特定的保單資訊"""
+#     # 1. 從 Authorization Header 取得並驗證 JWT Token
+#     auth_header = request.headers.get('Authorization')
+#     if not auth_header or not auth_header.startswith("Bearer "):
+#         return jsonify({'error': '缺少或無效的 Authorization header'}), 401
+
+#     token = auth_header.split(" ")[1] # 取得 token 部分
+#     payload = verify_jwt(token) # 驗證 token
+#     if not payload:
+#         return jsonify({'error': '無效或過期的 token'}), 401
+
+#     # 2. 從已驗證的 JWT payload 中可靠地取得 username
+#     username = payload.get('username')
+#     if not username:
+#         return jsonify({'error': '無法從 token 中獲取使用者名稱'}), 401
+
+#     # 3. 根據 token 中的 username 查詢客戶資料
+#     client = Client.query.filter_by(username=username).first()
+#     if not client:
+#         return jsonify({'error': '找不到對應已驗證使用者的客戶資料'}), 404
+
+#     # 4. 從 URL 查詢參數獲取請求的欄位 ('field')
+#     requested_field = request.args.get('field')
+#     if not requested_field:
+#         return jsonify({'error': '缺少必要的查詢參數: field'}), 400
+
+#     # 5. 根據請求的欄位回傳對應的資料
+#     if requested_field == 'cost':
+#         if client.policy_cost is not None: # 檢查值是否存在
+#             return jsonify({'policy_cost': client.policy_cost})
+#         else:
+#             return jsonify({'error': '此使用者沒有保單費用資料'}), 404
+
+#     elif requested_field == 'date':
+#         if client.policy_due_date is not None: # 檢查值是否存在
+#             return jsonify({'policy_due_date': client.policy_due_date.strftime('%Y-%m-%d')})
+#         else:
+#             return jsonify({'error': '此使用者沒有保單付款日期資料'}), 404
+
+#     else:
+#         # 處理無效的 'field' 參數值
+#         return jsonify({'error': f'查詢參數 "field" 的值無效: {requested_field}。有效選項為 "cost" 或 "date"'}), 400
+@app.route('/api/policy/cost', methods=['GET'])
+def get_policy_cost():
+    # 驗證 JWT Token (與原本 get_policy 邏輯相同)
     auth_header = request.headers.get('Authorization')
-    if not auth_header or not auth_header.startswith("Bearer "):
-        return jsonify({'error': '缺少或無效的 Authorization header'}), 401
-
-    token = auth_header.split(" ")[1] # 取得 token 部分
-    payload = verify_jwt(token) # 驗證 token
-    if not payload:
-        return jsonify({'error': '無效或過期的 token'}), 401
-
-    # 2. 從已驗證的 JWT payload 中可靠地取得 username
+    # ... (驗證邏輯) ...
+    payload = verify_jwt(token)
+    if not payload: return jsonify({'error': '無效或過期的 token'}), 401
     username = payload.get('username')
-    if not username:
-        return jsonify({'error': '無法從 token 中獲取使用者名稱'}), 401
+    if not username: return jsonify({'error': '無法從 token 中獲取使用者名稱'}), 401
 
-    # 3. 根據 token 中的 username 查詢客戶資料
     client = Client.query.filter_by(username=username).first()
-    if not client:
-        return jsonify({'error': '找不到對應已驗證使用者的客戶資料'}), 404
+    if not client: return jsonify({'error': '找不到客戶資料'}), 404
 
-    # 4. 從 URL 查詢參數獲取請求的欄位 ('field')
-    requested_field = request.args.get('field')
-    if not requested_field:
-        return jsonify({'error': '缺少必要的查詢參數: field'}), 400
-
-    # 5. 根據請求的欄位回傳對應的資料
-    if requested_field == 'cost':
-        if client.policy_cost is not None: # 檢查值是否存在
-            return jsonify({'policy_cost': client.policy_cost})
-        else:
-            return jsonify({'error': '此使用者沒有保單費用資料'}), 404
-
-    elif requested_field == 'date':
-        if client.policy_due_date is not None: # 檢查值是否存在
-            return jsonify({'policy_due_date': client.policy_due_date.strftime('%Y-%m-%d')})
-        else:
-            return jsonify({'error': '此使用者沒有保單付款日期資料'}), 404
-
+    # 直接回傳 cost
+    if client.policy_cost is not None:
+        return jsonify({'policy_cost': client.policy_cost})
     else:
-        # 處理無效的 'field' 參數值
-        return jsonify({'error': f'查詢參數 "field" 的值無效: {requested_field}。有效選項為 "cost" 或 "date"'}), 400
+        return jsonify({'error': '此使用者沒有保單費用資料'}), 404
 
+@app.route('/api/policy/date', methods=['GET'])
+def get_policy_date():
+     # 驗證 JWT Token (與原本 get_policy 邏輯相同)
+    auth_header = request.headers.get('Authorization')
+    # ... (驗證邏輯) ...
+    payload = verify_jwt(token)
+    if not payload: return jsonify({'error': '無效或過期的 token'}), 401
+    username = payload.get('username')
+    if not username: return jsonify({'error': '無法從 token 中獲取使用者名稱'}), 401
+
+    client = Client.query.filter_by(username=username).first()
+    if not client: return jsonify({'error': '找不到客戶資料'}), 404
+
+    # 直接回傳 date
+    if client.policy_due_date is not None:
+        return jsonify({'policy_due_date': client.policy_due_date.strftime('%Y-%m-%d')})
+    else:
+        return jsonify({'error': '此使用者沒有保單付款日期資料'}), 404
+    
 # --- 資料庫初始化輔助函數 ---
 def initialize_or_update_client(username, password, policy_num, cost, due_date_obj):
     """初始化或更新客戶資料的輔助函數"""
