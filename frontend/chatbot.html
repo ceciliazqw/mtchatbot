@@ -55,27 +55,16 @@
   
       // --- 關鍵修改：將 token 設定為 session parameter ---
       if (token && dfMessenger) {
-        console.log("Setting session parameter jwt_token for Dialogflow Messenger.");
-        // 這裡的參數名稱 'jwt_token' 需要與您在 Agent Builder Tool
-        // 設定中預期接收的參數名稱一致 (如果 Tool 需要從 Session 讀取)
-        // 或者更常見的是，Tool 直接設定 Authentication Header，
-        // 但前端傳遞參數可以讓 Agent 內部知道 token (雖然不直接使用)。
-        // **更新**：更常見且推薦的做法是 Agent Builder Tool 直接設定 Authentication Header
-        // 為 `Authorization: Bearer <token>`，此處前端傳遞主要是為了 agent 或 webhook (如果使用)
-        // 可能需要知道使用者是誰或 token 是什麼，但 Tool 的驗證應獨立設定。
-        // **為了讓 Tool 能運作，後續步驟中 Tool 的 Authentication 設定才是最重要的。**
-        // 我們仍然可以設定它，以防萬一 Agent 的其他部分需要它。
-        dfMessenger.sessionParameters = {
-          'jwt_token': token // 將 token 傳給 Agent session
-          // 如果 Agent Builder Tool 需要 username (雖然不建議，應從 JWT 解析)
-          // 'username': username 
-        };
-      } else if (!token) {
-          console.warn("JWT Token not found in localStorage.");
-          // 或許可以考慮導回登入頁面？
-          // window.location.href = "index.html";
-      }
-    };
+      const authHeaderValue = 'Bearer ' + token; // <--- 加上 "Bearer " 前綴
+      console.log("Setting session parameter auth_header_value for Dialogflow Messenger.");
+      dfMessenger.sessionParameters = {
+        // 使用新的參數名稱儲存完整的 Header 值
+        'auth_header_value': authHeaderValue 
+      };
+    } else if (!token) {
+        console.warn("JWT Token not found in localStorage.");
+    }
+  };
   </script>
   </body>
   </html>
