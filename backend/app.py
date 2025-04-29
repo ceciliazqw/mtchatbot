@@ -127,42 +127,83 @@ def login():
 #         return jsonify({'error': f'查詢參數 "field" 的值無效: {requested_field}。有效選項為 "cost" 或 "date"'}), 400
 @app.route('/api/policy/cost', methods=['GET'])
 def get_policy_cost():
-    # 驗證 JWT Token (與原本 get_policy 邏輯相同)
+    # --- START: 完整 JWT 驗證邏輯 ---
     auth_header = request.headers.get('Authorization')
-    # ... (驗證邏輯) ...
-    payload = verify_jwt(token)
-    if not payload: return jsonify({'error': '無效或過期的 token'}), 401
-    username = payload.get('username')
-    if not username: return jsonify({'error': '無法從 token 中獲取使用者名稱'}), 401
+    if not auth_header or not auth_header.startswith("Bearer "):
+        print("[ERROR] Missing or invalid Authorization header") # 加入 Log
+        return jsonify({'error': '缺少或無效的 Authorization header'}), 401
 
+    # 提取 token (在 "Bearer " 之後的部分)
+    try:
+        token = auth_header.split(" ")[1]
+    except IndexError:
+        print("[ERROR] Malformed Authorization header") # 加入 Log
+        # 處理格式錯誤的 header (例如只有 "Bearer")
+        return jsonify({'error': '無效的 Authorization header format'}), 401
+
+    payload = verify_jwt(token) # 使用提取出的 token 進行驗證
+    if not payload:
+        # verify_jwt 內部會印出更詳細的錯誤 (過期或無效)
+        return jsonify({'error': '無效或過期的 token'}), 401
+    # --- END: 完整 JWT 驗證邏輯 ---
+
+    username = payload.get('username')
+    if not username:
+        print("[ERROR] Username not found in token payload") # 加入 Log
+        return jsonify({'error': '無法從 token 中獲取使用者名稱'}), 401
+
+    print(f"[INFO] Processing /api/policy/cost request for user: {username}") # 加入 Log
     client = Client.query.filter_by(username=username).first()
-    if not client: return jsonify({'error': '找不到客戶資料'}), 404
+    if not client:
+        print(f"[WARN] Client data not found for user: {username}") # 加入 Log
+        return jsonify({'error': '找不到客戶資料'}), 404
 
     # 直接回傳 cost
     if client.policy_cost is not None:
+        print(f"[INFO] Returning policy cost for user: {username}") # 加入 Log
         return jsonify({'policy_cost': client.policy_cost})
     else:
+        print(f"[WARN] Policy cost data not available for user: {username}") # 加入 Log
         return jsonify({'error': '此使用者沒有保單費用資料'}), 404
 
 @app.route('/api/policy/date', methods=['GET'])
 def get_policy_date():
-     # 驗證 JWT Token (與原本 get_policy 邏輯相同)
+    # --- START: 完整 JWT 驗證邏輯 ---
     auth_header = request.headers.get('Authorization')
-    # ... (驗證邏輯) ...
-    payload = verify_jwt(token)
-    if not payload: return jsonify({'error': '無效或過期的 token'}), 401
-    username = payload.get('username')
-    if not username: return jsonify({'error': '無法從 token 中獲取使用者名稱'}), 401
+    if not auth_header or not auth_header.startswith("Bearer "):
+        print("[ERROR] Missing or invalid Authorization header") # 加入 Log
+        return jsonify({'error': '缺少或無效的 Authorization header'}), 401
 
+    # 提取 token (在 "Bearer " 之後的部分)
+    try:
+        token = auth_header.split(" ")[1]
+    except IndexError:
+        print("[ERROR] Malformed Authorization header") # 加入 Log
+        return jsonify({'error': '無效的 Authorization header format'}), 401
+
+    payload = verify_jwt(token) # 使用提取出的 token 進行驗證
+    if not payload:
+        return jsonify({'error': '無效或過期的 token'}), 401
+    # --- END: 完整 JWT 驗證邏輯 ---
+
+    username = payload.get('username')
+    if not username:
+        print("[ERROR] Username not found in token payload") # 加入 Log
+        return jsonify({'error': '無法從 token 中獲取使用者名稱'}), 401
+
+    print(f"[INFO] Processing /api/policy/date request for user: {username}") # 加入 Log
     client = Client.query.filter_by(username=username).first()
-    if not client: return jsonify({'error': '找不到客戶資料'}), 404
+    if not client:
+        print(f"[WARN] Client data not found for user: {username}") # 加入 Log
+        return jsonify({'error': '找不到客戶資料'}), 404
 
     # 直接回傳 date
     if client.policy_due_date is not None:
+        print(f"[INFO] Returning policy due date for user: {username}") # 加入 Log
         return jsonify({'policy_due_date': client.policy_due_date.strftime('%Y-%m-%d')})
     else:
+        print(f"[WARN] Policy due date data not available for user: {username}") # 加入 Log
         return jsonify({'error': '此使用者沒有保單付款日期資料'}), 404
-    
 # --- 資料庫初始化輔助函數 ---
 def initialize_or_update_client(username, password, policy_num, cost, due_date_obj):
     """初始化或更新客戶資料的輔助函數"""
