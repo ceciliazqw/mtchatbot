@@ -42,28 +42,67 @@
   <script src="https://www.gstatic.com/dialogflow-console/fast/df-messenger/prod/v1/df-messenger.js"></script>
   <script>
     window.onload = function() {
-      const username = localStorage.getItem('username');
-      const token = localStorage.getItem('token'); // <-- 取得 token
+      // --- DEBUG START ---
+      console.log("DEBUG: window.onload event triggered."); // 1. 確認 onload 是否執行
+
+      const username = localStorage.getItem('username'); // 讀取 username (用於歡迎訊息)
+      const token = localStorage.getItem('token'); // <<--- 讀取原始 token
       const welcomeMsg = document.getElementById('welcome-message');
-      const dfMessenger = document.querySelector('df-messenger'); // <-- 選取 df-messenger 元素
-  
+      const dfMessenger = document.querySelector('df-messenger'); // <<--- 尋找 df-messenger 元件
+
+      // 2. 在檢查前，Log 出讀取到的 token 和是否找到 dfMessenger 元件
+      console.log("DEBUG: Token from localStorage:", token); // Log 出 token 的值 (如果是 null 會顯示 null)
+      console.log("DEBUG: Found df-messenger element:", dfMessenger ? 'Yes' : 'No'); // Log 是否找到元件
+
+      // 更新歡迎訊息 (這部分是您原本的邏輯)
       if (username) {
         welcomeMsg.innerText = "歡迎回來！" + username;
       } else {
         welcomeMsg.innerText = "歡迎回來！Guest";
+        // 如果沒有 username，可能也沒有 token，可以加個警告
+        if (!token) {
+            console.warn("DEBUG: No username and also no token found in localStorage.");
+        }
       }
-  
-      // --- 關鍵修改：將 token 設定為 session parameter ---
+
+      // 3. 檢查 token 是否存在 且 dfMessenger 元件是否已找到
       if (token && dfMessenger) {
-      console.log("Setting session parameter raw_jwt_token for Dialogflow Messenger.");
-      dfMessenger.sessionParameters = {
-        // 使用新的參數名稱，儲存原始 Token 值
-        'raw_jwt_token': token // <--- 注意：這裡只傳遞 token，沒有 "Bearer "
-      };
-    } else if (!token) {
-        console.warn("JWT Token not found in localStorage.");
-    }
-  };
+        // 如果執行到這裡，表示 token 存在且 dfMessenger 元素也找到了
+        console.log("DEBUG: Condition 'token && dfMessenger' is TRUE. Entering block to set session parameter."); // 4. 確認程式碼塊被執行
+
+        try {
+            // 根據我們最新討論的 "Bearer Token" 驗證類型，我們需要傳遞原始 Token
+            const sessionParamValue = token; // <<--- 值是原始 token
+            const sessionParamKey = 'raw_jwt_token'; // <<--- Session 參數的名稱
+
+            // 5. Log 出準備要設定的鍵和值
+            console.log(`DEBUG: Attempting to set sessionParameters['${sessionParamKey}'] to:`, sessionParamValue); 
+
+            // 執行設定
+            dfMessenger.sessionParameters = {
+                [sessionParamKey]: sessionParamValue // 使用計算屬性名稱設定參數
+            };
+
+            // 6. Log 表示設定的動作已執行 (但不保證 Dialogflow 後端一定成功接收/處理)
+            console.log("DEBUG: dfMessenger.sessionParameters assignment executed."); 
+
+         } catch (e) {
+             // 7. 捕捉設定過程中可能發生的錯誤
+             console.error("DEBUG: Error occurred while setting sessionParameters:", e); 
+         }
+      } else {
+          // 8. 如果 if 條件不滿足 (token 是 null 或沒找到 dfMessenger)，Log 出原因
+          console.warn("DEBUG: Condition 'token && dfMessenger' is FALSE. Did not set session parameter.");
+          if (!token) {
+             console.warn("DEBUG: Reason: Token not found in localStorage or is empty."); 
+          }
+          if (!dfMessenger) {
+             // 如果是這裡出錯，可能是 JS 執行時機太早，df-messenger 還沒載入完成
+             console.error("DEBUG: Reason: df-messenger element not found. Check if element exists or if script runs too early.");
+          }
+      }
+      // --- DEBUG END ---
+    };
   </script>
   </body>
   </html>
