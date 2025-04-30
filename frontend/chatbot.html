@@ -55,11 +55,10 @@
   
       // --- 關鍵修改：將 token 設定為 session parameter ---
       if (token && dfMessenger) {
-      const authHeaderValue = 'Bearer ' + token; // <--- 加上 "Bearer " 前綴
-      console.log("Setting session parameter auth_header_value for Dialogflow Messenger.");
+      console.log("Setting session parameter raw_jwt_token for Dialogflow Messenger.");
       dfMessenger.sessionParameters = {
-        // 使用新的參數名稱儲存完整的 Header 值
-        'auth_header_value': authHeaderValue 
+        // 使用新的參數名稱，儲存原始 Token 值
+        'raw_jwt_token': token // <--- 注意：這裡只傳遞 token，沒有 "Bearer "
       };
     } else if (!token) {
         console.warn("JWT Token not found in localStorage.");
