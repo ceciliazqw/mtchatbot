@@ -41,8 +41,8 @@
   </df-messenger>
   <script src="https://www.gstatic.com/dialogflow-console/fast/df-messenger/prod/v1/df-messenger.js"></script>
   <script>
-    // --- Helper function to safely parse JSON ---
-    async function tryParseJson(response) {
+    // --- Helper function (保留) ---
+    async function tryParseJson(response) { 
         const text = await response.text();
         try {
             return JSON.parse(text);
@@ -50,136 +50,138 @@
             console.error("Failed to parse JSON response:", text);
             return { error: "API response was not valid JSON", responseText: text };
         }
-    } 
+     }
 
-    // --- Main onload logic ---
-    window.onload = function() {
-      console.log("DEBUG: window.onload triggered."); 
+    // --- Main Logic ---
+    const dfMessenger = document.querySelector('df-messenger'); 
 
-      const username = localStorage.getItem('username');
-      const welcomeMsg = document.getElementById('welcome-message');
-      const dfMessenger = document.querySelector('df-messenger'); 
+    if (dfMessenger) {
+        console.log("DEBUG: Found df-messenger element. Adding listener for 'df-messenger-loaded'.");
+        
+        // 1. 先監聽 'df-messenger-loaded' 事件
+        dfMessenger.addEventListener('df-messenger-loaded', function (event) {
+            console.log("DEBUG: Event 'df-messenger-loaded' received.");
 
-      // --- Welcome Message Logic ---
-      if (username) {
-        welcomeMsg.innerText = "歡迎回來！" + username;
-      } else {
-        welcomeMsg.innerText = "歡迎回來！Guest";
-      }
+            // --- 在這裡處理歡迎訊息 ---
+            const username = localStorage.getItem('username');
+            const welcomeMsg = document.getElementById('welcome-message');
+            if (username) { 
+                welcomeMsg.innerText = "歡迎回來！" + username; 
+            } else { 
+                welcomeMsg.innerText = "歡迎回來！Guest"; 
+            }
+            console.log("DEBUG: Welcome message set.");
 
-      // --- Event Listener for Function Tool Calls ---
-          // --- Event Listener for Function Tool Calls ---
-          if (dfMessenger) {
-              console.log("DEBUG: Adding event listener for df-request-error and df-tool-requested");
+            // --- 2. 在 df-messenger 載入後，再綁定 'df-tool-requested' 監聽器 ---
+            console.log("DEBUG: Adding event listener for 'df-tool-requested' INSIDE 'df-messenger-loaded'.");
+            dfMessenger.addEventListener('df-tool-requested', async function (toolEvent) { 
+                console.log("DEBUG: Event 'df-tool-requested' listener CALLED."); // <-- 檢查這個 Log 是否出現
 
-              dfMessenger.addEventListener('df-request-error', function (event) {
-                  console.error('Dialogflow Request Error:', event.detail);
-              });
-              
-              // Listen for requests to execute a function tool
-              dfMessenger.addEventListener('df-tool-requested', async function (event) {
-                  // ** DEBUG: Log the exact tool name received from the event **
-                  const toolFullName = event.detail.toolCall.tool; 
-                  console.log(`DEBUG: Event 'df-tool-requested' received for tool full name: ${toolFullName}`); 
-                  console.log("DEBUG: Event detail:", event.detail); // Log the whole detail object
+                const toolName = toolEvent.detail.toolCall.tool; 
+                console.log(`DEBUG: Tool full name from event: ${toolName}`); 
+                console.log("DEBUG: Event detail:", toolEvent.detail); 
 
-                  // ** Define the expected display name and resource name **
-                  const expectedToolDisplayName = 'ExecutePolicyApiCall'; 
-                  // Extract the tool ID from the error message you saw, or find it in the tool URL in CX Console
-                  const expectedToolResourceName = 'projects/ww-ai-agent-demo/locations/asia-northeast1/agents/9a687799-e142-4fbc-a0d0-110b63b7746f/tools/4ca721a0-216d-4075-b632-76b46709dea6'; // <-- Use the name from your error message
+                const expectedToolDisplayName = 'ExecutePolicyApiCall'; 
+                // *** 請再次確認這個 Tool ID 是否為您最新的 Function Tool ID ***
+                const expectedToolResourceName = 'projects/ww-ai-agent-demo/locations/asia-northeast1/agents/9a687799-e142-4fbc-a0d0-110b63b7746f/tools/4ca721a0-216d-4075-b632-76b46709dea6'; 
 
-                  // ** Modify the check to be more robust **
-                  // Check if the received full name matches the expected resource name OR if it ends with the display name
-                  if (toolFullName === expectedToolResourceName || toolFullName.endsWith('/' + expectedToolDisplayName)) { 
-                      console.log("DEBUG: Handling tool:", toolFullName); // Log confirmation
-                      
-                      // --- Your existing logic to handle the API call ---
-                      const action = event.detail.toolCall.inputParameters?.action;
-                      const token = localStorage.getItem('token');
-                      const baseApiUrl = "https://mtchatbot-932847276366.asia-east1.run.app"; 
-                      let apiUrl = "";
-                      let outputParameters = {};
-                      let requestSuccessful = false;
-                      let errorMessage = "";
+                if (toolName === expectedToolResourceName || toolName.endsWith('/' + expectedToolDisplayName)) { 
+                     console.log("DEBUG: Handling tool:", toolName); 
+                     
+                     // --- 您原本處理 fetch API 的邏輯放在這裡 ---
+                     const action = toolEvent.detail.toolCall.inputParameters?.action;
+                     const token = localStorage.getItem('token');
+                     const baseApiUrl = "https://mtchatbot-932847276366.asia-east1.run.app"; 
+                     let apiUrl = "";
+                     let outputParameters = {};
+                     let requestSuccessful = false;
+                     let errorMessage = "";
 
-                      console.log(`DEBUG: Action requested: ${action}`);
-                      console.log("DEBUG: Token retrieved from localStorage:", token ? "Found" : "Not Found!");
+                     console.log(`DEBUG: Action requested: ${action}`);
+                     console.log("DEBUG: Token retrieved from localStorage:", token ? "Found" : "Not Found!");
 
-                      if (!token) {
-                          errorMessage = "驗證失敗：找不到使用者 Token，請重新登入。";
-                          console.error(errorMessage);
-                      } else if (action === 'get_cost') {
-                          apiUrl = `${baseApiUrl}/api/policy/cost`;
-                      } else if (action === 'get_date') {
-                          apiUrl = `${baseApiUrl}/api/policy/date`;
-                      } else {
-                          errorMessage = `內部錯誤：未知的動作 '${action}'`;
-                          console.error(errorMessage);
-                      }
+                     if (!token) {
+                         errorMessage = "驗證失敗：找不到使用者 Token，請重新登入。";
+                         console.error(errorMessage);
+                     } else if (action === 'get_cost') {
+                         apiUrl = `${baseApiUrl}/api/policy/cost`;
+                     } else if (action === 'get_date') {
+                         apiUrl = `${baseApiUrl}/api/policy/date`;
+                     } else {
+                         errorMessage = `內部錯誤：未知的動作 '${action}'`;
+                         console.error(errorMessage);
+                     }
 
-                      if (apiUrl && token) {
-                          console.log(`DEBUG: Calling API: GET ${apiUrl}`);
-                          try {
-                              const response = await fetch(apiUrl, {
-                                  method: 'GET',
-                                  headers: { 'Authorization': `Bearer ${token}` }
-                              });
-                              // ... (rest of your fetch, response handling, tryParseJson logic remains the same) ...
-                              // ... (logic to set outputParameters or errorMessage) ...
-                               console.log(`DEBUG: API raw response status: ${response.status}`);
-                               if (response.ok) {
-                                   const responseData = await tryParseJson(response);
-                                   console.log("DEBUG: API success response data:", responseData);
-                                   if(responseData.error){ errorMessage = responseData.error; }
-                                   else {
-                                       if (action === 'get_cost' && responseData.policy_cost !== undefined) { outputParameters = { policy_cost: responseData.policy_cost }; requestSuccessful = true; }
-                                       else if (action === 'get_date' && responseData.policy_due_date !== undefined) { outputParameters = { policy_date: responseData.policy_due_date }; requestSuccessful = true; }
-                                       else { errorMessage = "API 回應成功，但缺少預期的資料。"; console.error(errorMessage, responseData); }
-                                   }
-                               } else {
-                                   const errorData = await tryParseJson(response);
-                                   errorMessage = `API 呼叫失敗 (狀態碼: ${response.status})` + (errorData.error ? `: ${errorData.error}` : '');
-                                   console.error(`API Error: ${response.status}`, errorData);
-                                   if (response.status === 401) { errorMessage = "驗證失敗 - Token 無效或缺失"; }
-                                   else if (response.status === 404) { errorMessage = "找不到客戶或保單資料"; }
-                               }
-                          } catch (error) {
-                              errorMessage = `呼叫 API 時發生錯誤: ${error.message}`;
-                              console.error("Fetch Error:", error);
-                          }
-                      } else if (!apiUrl && !errorMessage) {
-                          errorMessage = "內部錯誤：無法確定 API 路徑";
-                          console.error(errorMessage);
-                      }
-                      
-                      // --- Send result back to Dialogflow ---
-                      if (requestSuccessful) {
-                          console.log("DEBUG: Sending function_success with output:", outputParameters);
-                          event.detail.dfMessenger.sendRequest('function_success', {
-                              tool: toolFullName, // Send back the specific tool resource name received
-                              outputParameters: outputParameters
-                          });
-                      } else {
-                          console.log("DEBUG: Sending function_error with message:", errorMessage);
-                          event.detail.dfMessenger.sendRequest('function_error', {
-                              tool: toolFullName, 
-                              outputParameters: { error_message: errorMessage } 
-                          });
-                      }
-                      // --- End of existing logic ---
+                     if (apiUrl && token) {
+                         console.log(`DEBUG: Calling API: GET ${apiUrl}`);
+                         try {
+                             const response = await fetch(apiUrl, {
+                                 method: 'GET',
+                                 headers: { 'Authorization': `Bearer ${token}` }
+                             });
+                             console.log(`DEBUG: API raw response status: ${response.status}`);
+                             if (response.ok) {
+                                 const responseData = await tryParseJson(response);
+                                 console.log("DEBUG: API success response data:", responseData);
+                                 if(responseData.error){ errorMessage = responseData.error; }
+                                 else {
+                                     if (action === 'get_cost' && responseData.policy_cost !== undefined) { outputParameters = { policy_cost: responseData.policy_cost }; requestSuccessful = true; }
+                                     else if (action === 'get_date' && responseData.policy_due_date !== undefined) { outputParameters = { policy_date: responseData.policy_due_date }; requestSuccessful = true; }
+                                     else { errorMessage = "API 回應成功，但缺少預期的資料。"; console.error(errorMessage, responseData); }
+                                 }
+                             } else {
+                                 const errorData = await tryParseJson(response);
+                                 errorMessage = `API 呼叫失敗 (狀態碼: ${response.status})` + (errorData.error ? `: ${errorData.error}` : '');
+                                 console.error(`API Error: ${response.status}`, errorData);
+                                 if (response.status === 401) { errorMessage = "驗證失敗 - Token 無效或缺失"; }
+                                 else if (response.status === 404) { errorMessage = "找不到客戶或保單資料"; }
+                             }
+                         } catch (error) {
+                             errorMessage = `呼叫 API 時發生錯誤: ${error.message}`;
+                             console.error("Fetch Error:", error);
+                         }
+                     } else if (!apiUrl && !errorMessage) {
+                         errorMessage = "內部錯誤：無法確定 API 路徑";
+                         console.error(errorMessage);
+                     }
+                     
+                     // --- 回傳結果給 Dialogflow ---
+                     if (requestSuccessful) {
+                         console.log("DEBUG: Sending function_success with output:", outputParameters);
+                         toolEvent.detail.dfMessenger.sendRequest('function_success', {
+                             tool: toolFullName, 
+                             outputParameters: outputParameters
+                         });
+                     } else {
+                         console.log("DEBUG: Sending function_error with message:", errorMessage);
+                         toolEvent.detail.dfMessenger.sendRequest('function_error', {
+                             tool: toolFullName, 
+                             outputParameters: { error_message: errorMessage } 
+                         });
+                     }
+                     // --- 處理 fetch API 邏輯結束 ---
 
-                  } else {
-                      // Log if the tool name received doesn't match what we expect
-                      console.warn(`DEBUG: Tool request received for unhandled/mismatched tool: ${toolFullName}. Expected display name: ${expectedToolDisplayName} or resource name ending with it.`);
-                  }
-              });
-              // Log confirmation that the listener was supposedly added
-              console.log("DEBUG: Event listener for df-tool-requested supposedly added."); 
+                 } else {
+                     console.warn(`DEBUG: Tool request received for unhandled/mismatched tool: ${toolFullName}. Expected display name: ${expectedToolDisplayName} or resource name: ${expectedToolResourceName}`);
+                     // 可以選擇性地回傳錯誤給 Dialogflow
+                     toolEvent.detail.dfMessenger.sendRequest('function_error', { 
+                         tool: toolFullName, 
+                         outputParameters: { error_message: `Frontend received request for unhandled tool: ${toolFullName}` } 
+                     });
+                 }
+            }); // <-- df-tool-requested listener 結束
+            console.log("DEBUG: Event listener for 'df-tool-requested' supposedly added inside 'df-messenger-loaded'.");
 
-          } else {
-              console.error("DEBUG: df-messenger element not found on window.onload. Cannot add listener.");
-          }
-        };
+            // 將 df-request-error 監聽器也移到這裡可能更穩定
+            dfMessenger.addEventListener('df-request-error', function (errorEvent) {
+                console.error('Dialogflow Request Error:', errorEvent.detail);
+            });
+
+        }); // <-- df-messenger-loaded listener 結束
+
+    } else {
+        console.error("DEBUG: df-messenger element not found initially. Cannot add listeners.");
+    }
   </script>
   </body>
   </html>
