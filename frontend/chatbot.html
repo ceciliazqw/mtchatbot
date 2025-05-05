@@ -42,181 +42,62 @@
   <script src="https://www.gstatic.com/dialogflow-console/fast/df-messenger/prod/v1/df-messenger.js"></script>
   
   <script>
-    // --- Helper function to safely parse JSON ---
-    async function tryParseJson(response) { 
-        const text = await response.text();
-        try {
-            return JSON.parse(text);
-        } catch (err) {
-            console.error("Failed to parse JSON response:", text);
-            return { error: "API response was not valid JSON", responseText: text };
-        }
-     }
-
-    // --- Main Logic ---
-    console.log("DEBUG: Script start."); 
-
-    const dfMessenger = document.querySelector('df-messenger'); 
-
-    if (dfMessenger) {
-        console.log("DEBUG: Found df-messenger element. Adding listener for 'df-messenger-loaded'.");
-        
-        // 1. 先監聽 'df-messenger-loaded' 事件
-        dfMessenger.addEventListener('df-messenger-loaded', function (event) {
-            console.log("DEBUG: Event 'df-messenger-loaded' RECEIVED."); 
-
-            // --- 在這裡處理歡迎訊息 ---
-            try {
-                 const username = localStorage.getItem('username');
-                 const welcomeMsg = document.getElementById('welcome-message');
-                 if (welcomeMsg) { 
-                     if (username) { welcomeMsg.innerText = "歡迎回來！" + username; } 
-                     else { welcomeMsg.innerText = "歡迎回來！Guest"; }
-                     console.log("DEBUG: Welcome message set inside df-messenger-loaded.");
-                 } else {
-                     console.warn("DEBUG: welcome-message element not found inside df-messenger-loaded.");
-                 }
-            } catch(e) {
-                console.error("DEBUG: Error setting welcome message:", e);
-            }
-
-            // --- 2. 在 df-messenger 載入後，再綁定 'df-tool-requested' 監聽器 ---
-             console.log("DEBUG: Adding event listener for 'df-tool-requested' INSIDE 'df-messenger-loaded'.");
-             dfMessenger.addEventListener('df-tool-requested', async function (toolEvent) { 
-                console.log("DEBUG: Event 'df-tool-requested' listener CALLED."); // <--- 檢查這個 Log
-
-                const toolName = toolEvent.detail.toolCall.tool; // 完整的 Tool 資源名稱
-                console.log(`DEBUG: Tool full name from event: ${toolName}`); 
-                
-                // --- 檢查是否是我們要處理的 Function Tool ---
-                // ** 請務必確認下面這個 resource name 是您 Function Tool 的正確名稱 **
-                // 您可以從錯誤訊息中複製，或在 CX Tool 頁面查看其 URL/ID
-                const expectedToolResourceName = 'projects/ww-ai-agent-demo/locations/asia-northeast1/agents/9a687799-e142-4fbc-a0d0-110b63b7746f/tools/4ca721a0-216d-4075-b632-76b46709dea6'; 
-
-                if (toolName === expectedToolResourceName) { 
-                     console.log("DEBUG: Handling tool:", toolName); 
-                     
-                     // --- 開始執行 Client-Side API 呼叫 ---
-                     const action = toolEvent.detail.toolCall.inputParameters?.action;
-                     const token = localStorage.getItem('token'); // 從 Local Storage 讀取 Token
-                     const baseApiUrl = "https://mtchatbot-932847276366.asia-east1.run.app"; 
-                     let apiUrl = "";
-                     let outputParameters = {};
-                     let requestSuccessful = false;
-                     let errorMessage = "";
-
-                     console.log(`DEBUG: Action requested: ${action}`);
-                     console.log("DEBUG: Token retrieved from localStorage:", token ? "Found" : "Not Found!");
-
-                     if (!token) {
-                         errorMessage = "驗證失敗：找不到使用者 Token，請重新登入。";
-                         console.error(errorMessage);
-                     } else if (action === 'get_cost') {
-                         apiUrl = `${baseApiUrl}/api/policy/cost`;
-                     } else if (action === 'get_date') {
-                         apiUrl = `${baseApiUrl}/api/policy/date`;
-                     } else {
-                         errorMessage = `內部錯誤：未知的動作 '${action}'`;
-                         console.error(errorMessage);
-                     }
-
-                     // 如果 URL 和 Token 都有效，才呼叫 API
-                     if (apiUrl && token) {
-                         console.log(`DEBUG: Calling API from CLIENT-SIDE: GET ${apiUrl}`);
-                         try {
-                             const response = await fetch(apiUrl, {
-                                 method: 'GET',
-                                 headers: { 
-                                     'Authorization': `Bearer ${token}` // 在前端組裝 Header
-                                 }
-                             });
-                             console.log(`DEBUG: CLIENT-SIDE API raw response status: ${response.status}`);
-                             if (response.ok) {
-                                 const responseData = await tryParseJson(response);
-                                 console.log("DEBUG: CLIENT-SIDE API success response data:", responseData);
-                                 if(responseData.error){ errorMessage = responseData.error; }
-                                 else {
-                                     // 根據 action 將結果放入正確的輸出參數
-                                     if (action === 'get_cost' && responseData.policy_cost !== undefined) { outputParameters = { policy_cost: responseData.policy_cost }; requestSuccessful = true; }
-                                     else if (action === 'get_date' && responseData.policy_due_date !== undefined) { outputParameters = { policy_date: responseData.policy_due_date }; requestSuccessful = true; }
-                                     else { errorMessage = "API 回應成功，但缺少預期的資料。"; console.error(errorMessage, responseData); }
-                                 }
-                             } else {
-                                 const errorData = await tryParseJson(response);
-                                 errorMessage = `API 呼叫失敗 (狀態碼: ${response.status})` + (errorData.error ? `: ${errorData.error}` : '');
-                                 console.error(`CLIENT-SIDE API Error: ${response.status}`, errorData);
-                                 // 可以根據狀態碼設定更具體的錯誤訊息
-                                 if (response.status === 401) { errorMessage = "API 驗證失敗 - Token 無效或缺失"; }
-                                 else if (response.status === 404) { errorMessage = "API 找不到客戶或保單資料"; }
-                             }
-                         } catch (error) {
-                             errorMessage = `呼叫 API 時發生網路或連線錯誤: ${error.message}`;
-                             console.error("Client-side Fetch Error:", error);
-                         }
-                     } else if (!apiUrl && !errorMessage) {
-                         errorMessage = "內部錯誤：無法確定 API 路徑";
-                         console.error(errorMessage);
-                     }
-                     
-                     // --- 將執行結果回傳給 Dialogflow ---
-                     if (requestSuccessful) {
-                         console.log("DEBUG: Sending function_success to Dialogflow with output:", outputParameters);
-                         toolEvent.detail.dfMessenger.sendRequest('function_success', {
-                             tool: toolFullName, // 使用從事件中收到的完整工具名稱
-                             outputParameters: outputParameters
-                         });
-                     } else {
-                         console.log("DEBUG: Sending function_error to Dialogflow with message:", errorMessage);
-                         // 使用定義好的 error_message 輸出參數回傳錯誤
-                         toolEvent.detail.dfMessenger.sendRequest('function_error', {
-                             tool: toolFullName, 
-                             outputParameters: { error_message: errorMessage } 
-                         });
-                     }
-                     // --- Client-Side API 呼叫邏輯結束 ---
-
-                 } else {
-                     // 如果收到的工具名稱不是預期的 ExecutePolicyApiCall
-                     console.warn(`DEBUG: Tool request received for unhandled/mismatched tool: ${toolFullName}. Expected resource name: ${expectedToolResourceName}`);
-                     // 回傳錯誤給 Dialogflow
-                     toolEvent.detail.dfMessenger.sendRequest('function_error', { 
-                         tool: toolFullName, 
-                         outputParameters: { error_message: `前端收到未處理的工具請求: ${toolFullName}` } 
-                     });
-                 }
-            }); // <-- df-tool-requested listener 結束
-            console.log("DEBUG: Event listener for 'df-tool-requested' supposedly added inside 'df-messenger-loaded'.");
-
-             // df-request-error 監聽器 (可選)
-             dfMessenger.addEventListener('df-request-error', function (errorEvent) {
-                 console.error('Dialogflow Request Error:', errorEvent.detail);
-             });
-
-        }); // <-- df-messenger-loaded listener 結束
-
-        console.log("DEBUG: 'df-messenger-loaded' listener attached."); 
-
-    } else {
-        console.error("DEBUG: df-messenger element not found initially. Cannot add listeners.");
-    }
-
-    // --- Welcome Message Fallback (if needed, but ideally handled in loaded event) ---
-    // window.onload = function() { ... } // 可以移除或保留僅用於歡迎訊息
-    // 如果上面的 welcome message 設定在 loaded 事件中正常，這裡的 onload 就可以簡化或移除
     window.onload = function() {
-         console.log("DEBUG: window.onload for welcome message (check if redundant).");
-         const username = localStorage.getItem('username');
-         const welcomeMsg = document.getElementById('welcome-message');
-         if (welcomeMsg && !welcomeMsg.innerText.includes(username || 'Guest')) { // 避免重複設定
-             if (username) { welcomeMsg.innerText = "歡迎回來！" + username; } 
-             else { welcomeMsg.innerText = "歡迎回來！Guest"; }
-             console.log("DEBUG: Welcome message set in window.onload (fallback/secondary).");
-         } else if(welcomeMsg) {
-             console.log("DEBUG: Welcome message already set, skipping in window.onload.");
-         } else {
-             console.warn("DEBUG: welcome-message element not found in window.onload.");
+      // --- DEBUG START ---
+      console.log("DEBUG: window.onload event triggered."); 
+
+      const username = localStorage.getItem('username'); // For welcome message
+      const token = localStorage.getItem('token'); // Get raw token for session param
+      const welcomeMsg = document.getElementById('welcome-message');
+      const dfMessenger = document.querySelector('df-messenger'); // Find the element
+
+      console.log("DEBUG: Token from localStorage:", token); 
+      console.log("DEBUG: Found df-messenger element:", dfMessenger ? 'Yes' : 'No');
+
+      // Update welcome message
+      if (username) {
+        welcomeMsg.innerText = "歡迎回來！" + username;
+      } else {
+        welcomeMsg.innerText = "歡迎回來！Guest";
+        if (!token) {
+            console.warn("DEBUG: No username and also no token found in localStorage.");
+        }
+      }
+
+      // --- Set Session Parameter 'auth_header_value' (with Bearer prefix) ---
+      // This parameter name must match what's specified in the OpenAPI schema's 
+      // 'x-agent-input-parameter' field for the Authorization header.
+      if (token && dfMessenger) {
+        console.log("DEBUG: Condition 'token && dfMessenger' is TRUE. Entering block to set session parameter."); 
+        try {
+            // Value needs to be the full 'Bearer <token>' string
+            const authHeaderValue = 'Bearer ' + token; 
+            // Session parameter key 
+            const sessionParamKey = 'auth_header_value'; 
+
+            // Log the exact key and value being set
+            console.log(`DEBUG: Attempting to set sessionParameters['${sessionParamKey}'] to:`, authHeaderValue); 
+
+            dfMessenger.sessionParameters = {
+                [sessionParamKey]: authHeaderValue 
+            };
+
+            // Log after attempting assignment
+            console.log("DEBUG: dfMessenger.sessionParameters assignment executed."); 
+
+         } catch (e) {
+             // Catch any errors during the assignment itself
+             console.error("DEBUG: Error occurred while setting sessionParameters:", e); 
          }
-    }
+      } else {
+          // Log WHY the condition failed if it did
+          console.warn("DEBUG: Condition 'token && dfMessenger' is FALSE. Did not set session parameter.");
+          if (!token) { console.warn("DEBUG: Reason: Token not found in localStorage or is empty."); }
+          if (!dfMessenger) { console.error("DEBUG: Reason: df-messenger element not found."); }
+      }
+      // --- DEBUG END ---
+      // --- NO df-tool-requested listener in this version ---
+    };
   </script>
   </body>
   </html>
