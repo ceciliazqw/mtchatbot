@@ -324,7 +324,7 @@ def serve_static(filename):
 # --- 主程式進入點 ---
 if __name__ == '__main__':
     # 從環境變數讀取 PORT，若無則預設為 88
-    port = int(os.environ.get('PORT', 88))
+    port = int(os.environ.get('PORT', 8080))
     # 從設定檔讀取 DEBUG 模式，若無則預設為 False (更安全的預設)
     debug_mode = app.config.get('DEBUG', False) # 預設為 False
     print(f"啟動 Flask 伺服器於 Port {port}，偵錯模式: {debug_mode}")
