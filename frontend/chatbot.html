@@ -96,7 +96,29 @@
           if (!dfMessenger) { console.error("DEBUG: Reason: df-messenger element not found."); }
       }
       // --- DEBUG END ---
-      // --- NO df-tool-requested listener in this version ---
+      // Add df-tool-requested event listener to handle function tool calls
+      document.addEventListener('df-tool-requested', function(e) {
+        console.log("df-tool-requested event received", e.detail);
+        // Make API call to the backend consolidated endpoint
+        fetch('/api/policy/function', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + localStorage.getItem("token")
+            },
+            body: JSON.stringify(e.detail)
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log("API call response", data);
+            // Dispatch response event to df-messenger
+            document.querySelector('df-messenger').dispatchEvent(new CustomEvent("df-tool-response", { detail: data }));
+        })
+        .catch(error => {
+            console.error("API call error", error);
+            document.querySelector('df-messenger').dispatchEvent(new CustomEvent("df-tool-response", { detail: { "error_message": "API call failed" } }));
+        });
+      });
     };
   </script>
   </body>

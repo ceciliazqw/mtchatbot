@@ -7,6 +7,7 @@ from flask_cors import CORS
 import jwt                     # 用於 JWT 操作
 import datetime                # 用於設定 JWT 到期時間
 import os
+from google.cloud import dialogflowcx_v3beta1 as dialogflow
 from datetime import date      # 用於資料庫中的日期
 
 # 假設 models.py 定義了 db 和 Client 模型
