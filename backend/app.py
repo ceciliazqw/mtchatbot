@@ -289,6 +289,10 @@ with app.app_context():
     initialize_or_update_client("user2", "pass2", "3434", "NT$20000", date(2025, 6, 20))
     print("資料庫初始化完成。")
 
+@app.route('/health')
+def health_check():
+    return "OK", 200
+
 # --- 新增：處理前端靜態文件的路由 ---
 @app.route('/')
 def index():
