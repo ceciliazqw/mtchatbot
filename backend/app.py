@@ -141,58 +141,58 @@ def get_policy_date():
         print(f"[WARN] Policy due date data not available for user: {username}")
         return jsonify({'error': '此使用者沒有保單付款日期資料'}), 404
 
-@app.route('/api/policy/function', methods=['POST'])
-def policy_function():
-    """
-    接受包含 action 參數的 JSON 請求，
-    action 可為 "get_cost" (查詢費用) 或 "get_date" (查詢日期)，
-    根據 action 查詢並回傳對應的保單費用或下次繳款日期，
-    回應格式符合 Function 工具的輸入輸出參數 schema。
-    """
-    # --- 完整 JWT 驗證邏輯 ---
-    auth_header = request.headers.get('Authorization')
-    if not auth_header:
-        return jsonify({"error_message": "缺少或無效的 Authorization header"}), 401
-    if auth_header.startswith("Bearer "):
-        try:
-            token = auth_header.split(" ")[1]
-        except IndexError:
-            return jsonify({"error_message": "無效的 Authorization header format"}), 401
-    else:
-        token = auth_header
+# @app.route('/api/policy/function', methods=['POST'])
+# def policy_function():
+#     """
+#     接受包含 action 參數的 JSON 請求，
+#     action 可為 "get_cost" (查詢費用) 或 "get_date" (查詢日期)，
+#     根據 action 查詢並回傳對應的保單費用或下次繳款日期，
+#     回應格式符合 Function 工具的輸入輸出參數 schema。
+#     """
+#     # --- 完整 JWT 驗證邏輯 ---
+#     auth_header = request.headers.get('Authorization')
+#     if not auth_header:
+#         return jsonify({"error_message": "缺少或無效的 Authorization header"}), 401
+#     if auth_header.startswith("Bearer "):
+#         try:
+#             token = auth_header.split(" ")[1]
+#         except IndexError:
+#             return jsonify({"error_message": "無效的 Authorization header format"}), 401
+#     else:
+#         token = auth_header
 
-    payload = verify_jwt(token)
-    if not payload:
-        return jsonify({"error_message": "無效或過期的 token"}), 401
+#     payload = verify_jwt(token)
+#     if not payload:
+#         return jsonify({"error_message": "無效或過期的 token"}), 401
 
-    username = payload.get('username')
-    if not username:
-        return jsonify({"error_message": "無法從 token 中獲取使用者名稱"}), 401
+#     username = payload.get('username')
+#     if not username:
+#         return jsonify({"error_message": "無法從 token 中獲取使用者名稱"}), 401
 
-    data = request.get_json()
-    if not data:
-        return jsonify({"error_message": "請求主體必須是 JSON 格式"}), 400
+#     data = request.get_json()
+#     if not data:
+#         return jsonify({"error_message": "請求主體必須是 JSON 格式"}), 400
 
-    action = data.get('action')
-    if not action:
-        return jsonify({"error_message": "缺少必要的 action 參數"}), 400
+#     action = data.get('action')
+#     if not action:
+#         return jsonify({"error_message": "缺少必要的 action 參數"}), 400
 
-    client = Client.query.filter_by(username=username).first()
-    if not client:
-        return jsonify({"error_message": "找不到客戶資料"}), 404
+#     client = Client.query.filter_by(username=username).first()
+#     if not client:
+#         return jsonify({"error_message": "找不到客戶資料"}), 404
 
-    if action == "get_cost":
-        if client.policy_cost is not None:
-            return jsonify({"policy_cost": client.policy_cost, "error_message": ""})
-        else:
-            return jsonify({"error_message": "此使用者沒有保單費用資料"}), 404
-    elif action == "get_date":
-        if client.policy_due_date is not None:
-            return jsonify({"policy_date": client.policy_due_date.strftime('%Y-%m-%d'), "error_message": ""})
-        else:
-            return jsonify({"error_message": "此使用者沒有保單付款日期資料"}), 404
-    else:
-        return jsonify({"error_message": "無效的 action: " + str(action)}), 400
+#     if action == "get_cost":
+#         if client.policy_cost is not None:
+#             return jsonify({"policy_cost": client.policy_cost, "error_message": ""})
+#         else:
+#             return jsonify({"error_message": "此使用者沒有保單費用資料"}), 404
+#     elif action == "get_date":
+#         if client.policy_due_date is not None:
+#             return jsonify({"policy_date": client.policy_due_date.strftime('%Y-%m-%d'), "error_message": ""})
+#         else:
+#             return jsonify({"error_message": "此使用者沒有保單付款日期資料"}), 404
+#     else:
+#         return jsonify({"error_message": "無效的 action: " + str(action)}), 400
 
 def initialize_or_update_client(username, password, policy_num, cost, due_date_obj):
     """初始化或更新客戶資料的輔助函數"""
