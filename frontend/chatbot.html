@@ -6,26 +6,14 @@
   <title>Chatbot Messenger</title>
   <link rel="stylesheet" href="https://www.gstatic.com/dialogflow-console/fast/df-messenger/prod/v1/themes/df-messenger-default.css">
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-    }
-    #welcome-message {
-      margin: 20px;
-      font-size: 24px;
-      text-align: center;
-    }
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+    #welcome-message { margin: 20px; font-size: 24px; text-align: center; }
     df-messenger {
-      z-index: 999;
-      position: fixed;
-      --df-messenger-font-color: #000;
-      --df-messenger-font-family: Google Sans;
+      z-index: 999; position: fixed; bottom: 16px; right: 16px;
+      --df-messenger-font-color: #000; --df-messenger-font-family: Google Sans;
       --df-messenger-chat-background: #f3f6fc;
       --df-messenger-message-user-background: #d3e3fd;
       --df-messenger-message-bot-background: #fff;
-      bottom: 16px;
-      right: 16px;
     }
   </style>
 </head>
@@ -43,82 +31,42 @@
   
   <script>
     window.onload = function() {
-      // --- DEBUG START ---
-      console.log("DEBUG: window.onload event triggered."); 
+      console.log("DEBUG: chatbot.html window.onload triggered."); 
 
-      const username = localStorage.getItem('username'); // For welcome message
-      const token = localStorage.getItem('token'); // Get raw token for session param
+      const username = localStorage.getItem('username');
+      const token = localStorage.getItem('token'); 
       const welcomeMsg = document.getElementById('welcome-message');
-      const dfMessenger = document.querySelector('df-messenger'); // Find the element
+      const dfMessenger = document.querySelector('df-messenger'); 
 
-      console.log("DEBUG: Token from localStorage:", token); 
-      console.log("DEBUG: Found df-messenger element:", dfMessenger ? 'Yes' : 'No');
+      console.log("DEBUG: Token from localStorage for session param setup:", token); 
+      console.log("DEBUG: Found df-messenger element for session param setup:", dfMessenger ? 'Yes' : 'No');
 
-      // Update welcome message
       if (username) {
         welcomeMsg.innerText = "歡迎回來！" + username;
       } else {
         welcomeMsg.innerText = "歡迎回來！Guest";
-        if (!token) {
-            console.warn("DEBUG: No username and also no token found in localStorage.");
-        }
       }
 
-      // --- Set Session Parameter 'auth_header_value' (with Bearer prefix) ---
-      // This parameter name must match what's specified in the OpenAPI schema's 
-      // 'x-agent-input-parameter' field for the Authorization header.
+      // 設定 Session Parameter，供 OpenAPI Tool 使用
       if (token && dfMessenger) {
-        console.log("DEBUG: Condition 'token && dfMessenger' is TRUE. Entering block to set session parameter."); 
+        console.log("DEBUG: Condition 'token && dfMessenger' is TRUE. Setting 'auth_header_value' session parameter."); 
         try {
-            // Value needs to be the full 'Bearer <token>' string
-            const authHeaderValue = 'Bearer ' + token; 
-            // Session parameter key 
-            const sessionParamKey = 'auth_header_value'; 
+            const authHeaderValue = token;
+            const sessionParamKey = 'auth_header_value';
 
-            // Log the exact key and value being set
             console.log(`DEBUG: Attempting to set sessionParameters['${sessionParamKey}'] to:`, authHeaderValue); 
-
             dfMessenger.sessionParameters = {
                 [sessionParamKey]: authHeaderValue 
             };
-
-            // Log after attempting assignment
-            console.log("DEBUG: dfMessenger.sessionParameters assignment executed."); 
-
+            console.log("DEBUG: dfMessenger.sessionParameters assignment executed for 'auth_header_value'."); 
          } catch (e) {
-             // Catch any errors during the assignment itself
              console.error("DEBUG: Error occurred while setting sessionParameters:", e); 
          }
       } else {
-          // Log WHY the condition failed if it did
-          console.warn("DEBUG: Condition 'token && dfMessenger' is FALSE. Did not set session parameter.");
-          if (!token) { console.warn("DEBUG: Reason: Token not found in localStorage or is empty."); }
+          console.warn("DEBUG: Condition 'token && dfMessenger' is FALSE for 'auth_header_value' setup.");
+          if (!token) { console.warn("DEBUG: Reason: Token not found in localStorage."); }
           if (!dfMessenger) { console.error("DEBUG: Reason: df-messenger element not found."); }
       }
-      // --- DEBUG END ---
-      // Add df-tool-requested event listener to handle function tool calls
-      document.addEventListener('df-tool-requested', function(e) {
-        console.log("df-tool-requested event received", e.detail);
-        // Make API call to the backend consolidated endpoint
-        fetch('/api/policy/function', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer ' + localStorage.getItem("token")
-            },
-            body: JSON.stringify(e.detail)
-        })
-        .then(response => response.json())
-        .then(data => {
-            console.log("API call response", data);
-            // Dispatch response event to df-messenger
-            document.querySelector('df-messenger').dispatchEvent(new CustomEvent("df-tool-response", { detail: data }));
-        })
-        .catch(error => {
-            console.error("API call error", error);
-            document.querySelector('df-messenger').dispatchEvent(new CustomEvent("df-tool-response", { detail: { "error_message": "API call failed" } }));
-        });
-      });
     };
   </script>
   </body>
