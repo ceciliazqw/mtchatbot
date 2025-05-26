@@ -51,7 +51,7 @@
       if (token && dfMessenger) {
         console.log("DEBUG: Condition 'token && dfMessenger' is TRUE. Setting 'auth_header_value' session parameter."); 
         try {
-            const authHeaderValue = 'Bearer ' + token;
+            const authHeaderValue = token;
             const sessionParamKey = 'auth_header_value';
 
             console.log(`DEBUG: Attempting to set sessionParameters['${sessionParamKey}'] to:`, authHeaderValue); 

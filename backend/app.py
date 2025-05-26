@@ -128,18 +128,20 @@ def login():
 @app.route('/api/policy/cost', methods=['GET'])
 def get_policy_cost():
     # --- START: 完整 JWT 驗證邏輯 ---
+:start_line:131
+-------
     auth_header = request.headers.get('Authorization')
-    if not auth_header or not auth_header.startswith("Bearer "):
-        print("[ERROR] Missing or invalid Authorization header") # 加入 Log
+    if not auth_header:
+        print("[ERROR] Missing or invalid Authorization header")
         return jsonify({'error': '缺少或無效的 Authorization header'}), 401
-
-    # 提取 token (在 "Bearer " 之後的部分)
-    try:
-        token = auth_header.split(" ")[1]
-    except IndexError:
-        print("[ERROR] Malformed Authorization header") # 加入 Log
-        # 處理格式錯誤的 header (例如只有 "Bearer")
-        return jsonify({'error': '無效的 Authorization header format'}), 401
+    if auth_header.startswith("Bearer "):
+        try:
+            token = auth_header.split(" ")[1]
+        except IndexError:
+            print("[ERROR] Malformed Authorization header")
+            return jsonify({'error': '無效的 Authorization header format'}), 401
+    else:
+        token = auth_header
 
     payload = verify_jwt(token) # 使用提取出的 token 進行驗證
     if not payload:
@@ -170,16 +172,20 @@ def get_policy_cost():
 def get_policy_date():
     # --- START: 完整 JWT 驗證邏輯 ---
     auth_header = request.headers.get('Authorization')
-    if not auth_header or not auth_header.startswith("Bearer "):
-        print("[ERROR] Missing or invalid Authorization header") # 加入 Log
+    if not auth_header:
+        print("[ERROR] Missing or invalid Authorization header")
         return jsonify({'error': '缺少或無效的 Authorization header'}), 401
-
-    # 提取 token (在 "Bearer " 之後的部分)
-    try:
-        token = auth_header.split(" ")[1]
-    except IndexError:
-        print("[ERROR] Malformed Authorization header") # 加入 Log
-        return jsonify({'error': '無效的 Authorization header format'}), 401
+:start_line:218
+-------
+    if not auth_header:
+        return jsonify({"error_message": "缺少或無效的 Authorization header"}), 401
+    if auth_header.startswith("Bearer "):
+        try:
+            token = auth_header.split(" ")[1]
+        except IndexError:
+            return jsonify({"error_message": "無效的 Authorization header format"}), 401
+    else:
+        token = auth_header
 
     payload = verify_jwt(token) # 使用提取出的 token 進行驗證
     if not payload:
@@ -213,13 +219,18 @@ def policy_function():
     回應格式符合 Function 工具的輸入輸出參數 schema。
     """
     # --- 完整 JWT 驗證邏輯 ---
+:start_line:216
+-------
     auth_header = request.headers.get('Authorization')
-    if not auth_header or not auth_header.startswith("Bearer "):
+    if not auth_header:
         return jsonify({"error_message": "缺少或無效的 Authorization header"}), 401
-    try:
-        token = auth_header.split(" ")[1]
-    except IndexError:
-        return jsonify({"error_message": "無效的 Authorization header format"}), 401
+    if auth_header.startswith("Bearer "):
+        try:
+            token = auth_header.split(" ")[1]
+        except IndexError:
+            return jsonify({"error_message": "無效的 Authorization header format"}), 401
+    else:
+        token = auth_header
     payload = verify_jwt(token)
     if not payload:
         return jsonify({"error_message": "無效或過期的 token"}), 401
